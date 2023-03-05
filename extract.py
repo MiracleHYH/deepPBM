@@ -23,6 +23,9 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(' Processor is %s' % device)
 
 for data_idx in TRAIN_SET:
+    if data_idx == 2:
+        continue
+
     data_path = os.path.join(os.path.abspath('.'), 'data', 'Video_%03d' % data_idx, 'BMC2012_%03d.npy' % data_idx)
     model_path = os.path.join(os.path.abspath('.'), 'models', 'BMC2012_%03d.pth' % data_idx)
     result_dir = os.path.join(os.path.abspath('.'), 'results', 'Video_%03d' % data_idx)
@@ -65,8 +68,19 @@ for data_idx in TRAIN_SET:
         imgs_rec = imgs_rec.data.numpy()
         img_i = imgs_rec[0].transpose(1, 0).reshape(x, y, 3)
         img_i = (img_i * 255).astype(np.uint8)
-        cv2.imshow("rec", img_i)
-        cv2.waitKey(10)
+        img_o = img.transpose(1, 2, 0).astype(np.uint8)
+        sub_img = cv2.absdiff(img_o, img_i)
+        gray_img = cv2.cvtColor(sub_img, cv2.COLOR_BGR2GRAY)
+        th, gray_img = cv2.threshold(gray_img, 0, 255, cv2.THRESH_OTSU)
+        k1 = np.ones((3, 3), np.uint8)
+        k2 = np.ones((3, 3), np.uint8)
+        # res_img = cv2.dilate(cv2.erode(gray_img, k1), k2)
+        res_img = cv2.erode(gray_img, k1)
+
+        cv2.imshow("img", np.hstack([img_o, img_i]))
+        cv2.imshow("gray", np.hstack([gray_img, res_img]))
+        if cv2.waitKey(30) & 0xFF == 27:
+            exit()
         # recVideo.write(img_i)
         # io.imsave(os.path.join(rec_dir, 'Img_%05d.bmp' % img_idx), img_i)
     # recVideo.release()
