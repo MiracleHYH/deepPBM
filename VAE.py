@@ -20,13 +20,13 @@ class VAE(nn.Module):
         self.ebn3 = nn.BatchNorm2d(conf.L3, eps=conf.EPS, momentum=0.1, affine=True, track_running_stats=True)
         self.econv4 = nn.Conv2d(conf.L3, conf.L4, kernel_size=conf.KernelSize, stride=conf.Stride)
         self.ebn4 = nn.BatchNorm2d(conf.L4, eps=conf.EPS, momentum=0.1, affine=True, track_running_stats=True)
-        self.efc1 = nn.Linear(conf.L4 * 20 * 16, conf.L5)
+        self.efc1 = nn.Linear(conf.L4 * conf.FeatureRow * conf.FeatureCol, conf.L5)
         self.edrop1 = nn.Dropout(p=0.3, inplace=False)
         self.mu_z = nn.Linear(conf.L5, conf.LatentDim)
         self.logvar_z = nn.Linear(conf.L5, conf.LatentDim)
         # Decoder
         self.dfc1 = nn.Linear(conf.LatentDim, conf.L5)
-        self.dfc2 = nn.Linear(conf.L5, conf.L4 * 20 * 16)
+        self.dfc2 = nn.Linear(conf.L5, conf.L4 * conf.FeatureRow * conf.FeatureCol)
         self.ddrop1 = nn.Dropout(p=0.3, inplace=False)
         self.dconv1 = nn.ConvTranspose2d(conf.L4, conf.L3, kernel_size=conf.KernelSize, stride=conf.Stride, padding=0,
                                          output_padding=0)
@@ -47,7 +47,7 @@ class VAE(nn.Module):
         eh2 = self.relu(self.ebn2(self.econv2(eh1)))
         eh3 = self.relu(self.ebn3(self.econv3(eh2)))
         eh4 = self.relu(self.ebn4(self.econv4(eh3)))
-        eh5 = self.relu(self.edrop1(self.efc1(eh4.view(-1, self.conf.L4 * 20 * 16))))
+        eh5 = self.relu(self.edrop1(self.efc1(eh4.view(-1, self.conf.L4 * self.conf.FeatureRow * self.conf.FeatureCol))))
         mu_z = self.mu_z(eh5)
         logvar_z = self.logvar_z(eh5)
         return mu_z, logvar_z
@@ -61,7 +61,7 @@ class VAE(nn.Module):
     def decoder(self, z):
         dh1 = self.relu(self.dfc1(z))
         dh2 = self.relu(self.ddrop1(self.dfc2(dh1)))
-        dh3 = self.relu(self.dbn1(self.dconv1(dh2.view(-1, self.conf.L4, 20, 16))))
+        dh3 = self.relu(self.dbn1(self.dconv1(dh2.view(-1, self.conf.L4, self.conf.FeatureRow, self.conf.FeatureCol))))
         dh4 = self.relu(self.dbn2(self.dconv2(dh3)))
         dh5 = self.relu(self.dbn3(self.dconv3(dh4)))
         x = self.dconv4(dh5).view(-1, 3, self.conf.ImageSize)

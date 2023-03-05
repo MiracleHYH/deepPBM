@@ -1,5 +1,6 @@
 class VAEConfig:
-    def __init__(self, device, img_size, latent_dim):
+    def __init__(self, device, img_size, latent_dim, feature_row, feature_col):
+        self.Device = device
         self.L1 = 32
         self.L2 = 64
         self.L3 = 128
@@ -11,4 +12,5 @@ class VAEConfig:
         self.Stride = 2
         self.EPS = 1e-5
         self.ImageSize = img_size
-        self.Device = device
+        self.FeatureRow = feature_row
+        self.FeatureCol = feature_col
