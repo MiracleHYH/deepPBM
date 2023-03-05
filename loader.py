@@ -28,7 +28,7 @@ def modify(video_path, save_path):
 
 
 def main():
-    for idx in range(1, 2):
+    for idx in range(1, 10):
         video_dir = os.path.join(os.path.abspath('.'), 'data', 'Video_%03d' % idx)
         modify(
             video_path=os.path.join(video_dir, 'Video_%03d.avi' % idx),
