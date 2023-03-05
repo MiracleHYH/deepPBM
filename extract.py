@@ -24,14 +24,15 @@ print(' Processor is %s' % device)
 
 for data_idx in TRAIN_SET:
     data_path = os.path.join(os.path.abspath('.'), 'data', 'Video_%03d' % data_idx, 'BMC2012_%03d.npy' % data_idx)
-    modelPath = os.path.join(os.path.abspath('.'), 'models', 'BMC2012_%03d.pth' % data_idx)
-    resultDir = os.path.join(os.path.abspath('.'), 'results', 'Video_%03d' % data_idx)
-    recDir = os.path.join(resultDir, 'rec')
-    maskDir = os.path.join(resultDir, 'mask')
-    if not os.path.exists(recDir):
-        os.makedirs(recDir)
-    if not os.path.exists(maskDir):
-        os.makedirs(maskDir)
+    model_path = os.path.join(os.path.abspath('.'), 'models', 'BMC2012_%03d.pth' % data_idx)
+    result_dir = os.path.join(os.path.abspath('.'), 'results', 'Video_%03d' % data_idx)
+    rec_dir = os.path.join(result_dir, 'rec')
+    mask_dir = os.path.join(result_dir, 'mask')
+
+    if not os.path.exists(rec_dir):
+        os.makedirs(rec_dir)
+    if not os.path.exists(mask_dir):
+        os.makedirs(mask_dir)
     vae = VAE(VAEConfig(
         device=device,
         img_size=IMAGE_SIZE[data_idx],
@@ -39,26 +40,33 @@ for data_idx in TRAIN_SET:
         feature_row=FEATURE_ROW[data_idx],
         feature_col=FEATURE_COL[data_idx]
     ))
-    vae.load_state_dict(torch.load(modelPath))
+    vae.load_state_dict(torch.load(model_path))
     vae.to(device)
     imgs = np.load(data_path)
     nSample, ch, x, y = imgs.shape
-    recVideo = cv2.VideoWriter(
-        os.path.join(resultDir, 'Video_%03d_Rec.avi' % data_idx),
-        cv2.VideoWriter_fourcc('I', '4', '2', '0'),
-        24,
-        (x, y)
-    )
+
+    video_path = os.path.join(os.path.abspath('.'), 'data', 'Video_%03d' % data_idx, 'Video_%03d.avi' % data_idx)
+    cap = cv2.VideoCapture(video_path)
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    cap.release()
+    # recVideo = cv2.VideoWriter(
+    #     os.path.join(result_dir, 'Video_%03d_Rec.avi' % data_idx),
+    #     cv2.VideoWriter_fourcc('I', '4', '2', '0'),
+    #     fps,
+    #     (x, y)
+    # )
+
     for img_idx in range(nSample):
         img = imgs[img_idx]
-        img_variable = Variable(torch.FloatTensor(img/256)).unsqueeze(0).to(device)
+        img_variable = Variable(torch.FloatTensor(img / 256)).unsqueeze(0).to(device)
         imgs_z_mu, imgs_z_logvar = vae.encoder(img_variable)
         imgs_z = vae.reparam(imgs_z_mu, imgs_z_logvar)
         imgs_rec = vae.decoder(imgs_z).cpu()
         imgs_rec = imgs_rec.data.numpy()
         img_i = imgs_rec[0].transpose(1, 0).reshape(x, y, 3)
         img_i = (img_i * 255).astype(np.uint8)
-        recVideo.write(img_i)
-        io.imsave(os.path.join(recDir, 'Img_%05d.bmp' % img_idx), img_i)
-    recVideo.release()
-
+        cv2.imshow("rec", img_i)
+        cv2.waitKey(10)
+        # recVideo.write(img_i)
+        # io.imsave(os.path.join(rec_dir, 'Img_%05d.bmp' % img_idx), img_i)
+    # recVideo.release()

@@ -3,8 +3,10 @@
 
 /data/*
 /models/*
+/results/*
 !/data/README.md
 !/models/README.md
+!/results/README.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
