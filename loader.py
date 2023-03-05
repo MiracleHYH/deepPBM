@@ -1,6 +1,6 @@
 """
 loader.py
-从data下每个视频中提取
+从data下每个视频中提取每帧数据存储到.npy文件
 """
 import os
 import cv2

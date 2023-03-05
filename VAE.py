@@ -1,3 +1,9 @@
+"""
+VAE.py
+VAE模型定义
+input: VAEConfig
+"""
+
 import numpy as np
 import torch
 from torch import nn, optim

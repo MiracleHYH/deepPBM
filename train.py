@@ -1,3 +1,8 @@
+"""
+train.py
+VAE模型训练,生成.pth存储到./models/下
+"""
+
 from __future__ import division
 
 import os
