@@ -23,19 +23,20 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(' Processor is %s' % device)
 
 for data_idx in TRAIN_SET:
-    if data_idx == 2:
-        continue
-
     data_path = os.path.join(os.path.abspath('.'), 'data', 'Video_%03d' % data_idx, 'BMC2012_%03d.npy' % data_idx)
     model_path = os.path.join(os.path.abspath('.'), 'models', 'BMC2012_%03d.pth' % data_idx)
     result_dir = os.path.join(os.path.abspath('.'), 'results', 'Video_%03d' % data_idx)
+    real_dir = os.path.join(result_dir, 'real')
     rec_dir = os.path.join(result_dir, 'rec')
     mask_dir = os.path.join(result_dir, 'mask')
 
+    if not os.path.exists(real_dir):
+        os.makedirs(real_dir)
     if not os.path.exists(rec_dir):
         os.makedirs(rec_dir)
     if not os.path.exists(mask_dir):
         os.makedirs(mask_dir)
+
     vae = VAE(VAEConfig(
         device=device,
         img_size=IMAGE_SIZE[data_idx],
@@ -48,39 +49,27 @@ for data_idx in TRAIN_SET:
     imgs = np.load(data_path)
     nSample, ch, x, y = imgs.shape
 
-    video_path = os.path.join(os.path.abspath('.'), 'data', 'Video_%03d' % data_idx, 'Video_%03d.avi' % data_idx)
-    cap = cv2.VideoCapture(video_path)
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
-    cap.release()
-    # recVideo = cv2.VideoWriter(
-    #     os.path.join(result_dir, 'Video_%03d_Rec.avi' % data_idx),
-    #     cv2.VideoWriter_fourcc('I', '4', '2', '0'),
-    #     fps,
-    #     (x, y)
-    # )
-
     for img_idx in range(nSample):
-        img = imgs[img_idx]
-        img_variable = Variable(torch.FloatTensor(img / 256)).unsqueeze(0).to(device)
+        img_o = imgs[img_idx].transpose(1, 2, 0).astype(np.uint8)
+
+        img_variable = Variable(torch.FloatTensor(imgs[img_idx] / 256)).unsqueeze(0).to(device)
+
         imgs_z_mu, imgs_z_logvar = vae.encoder(img_variable)
         imgs_z = vae.reparam(imgs_z_mu, imgs_z_logvar)
         imgs_rec = vae.decoder(imgs_z).cpu()
-        imgs_rec = imgs_rec.data.numpy()
-        img_i = imgs_rec[0].transpose(1, 0).reshape(x, y, 3)
-        img_i = (img_i * 255).astype(np.uint8)
-        img_o = img.transpose(1, 2, 0).astype(np.uint8)
-        sub_img = cv2.absdiff(img_o, img_i)
-        gray_img = cv2.cvtColor(sub_img, cv2.COLOR_BGR2GRAY)
-        th, gray_img = cv2.threshold(gray_img, 0, 255, cv2.THRESH_OTSU)
-        k1 = np.ones((3, 3), np.uint8)
-        k2 = np.ones((3, 3), np.uint8)
-        # res_img = cv2.dilate(cv2.erode(gray_img, k1), k2)
-        res_img = cv2.erode(gray_img, k1)
 
-        cv2.imshow("img", np.hstack([img_o, img_i]))
-        cv2.imshow("gray", np.hstack([gray_img, res_img]))
-        if cv2.waitKey(30) & 0xFF == 27:
-            exit()
-        # recVideo.write(img_i)
-        # io.imsave(os.path.join(rec_dir, 'Img_%05d.bmp' % img_idx), img_i)
-    # recVideo.release()
+        img_i = imgs_rec.data.numpy()[0].transpose(1, 0).reshape(x, y, 3)
+        img_i = (img_i * 255).astype(np.uint8)
+
+        sub_img = cv2.absdiff(img_o, img_i)
+        sub_img = cv2.GaussianBlur(sub_img, (3, 3), 0, 0)
+        gray_img = cv2.cvtColor(sub_img, cv2.COLOR_BGR2GRAY)
+        th, gray_img = cv2.threshold(gray_img, 0, 255, cv2.THRESH_TRIANGLE)
+        res_img = cv2.erode(gray_img, np.ones((3, 3), np.uint8))
+        # cv2.imshow("real & recover", np.hstack([img_o, img_i]))
+        # cv2.imshow("mask", res_img)
+        # if cv2.waitKey(30) & 0xFF == 27:
+        #     break
+        io.imsave(os.path.join(real_dir, 'Img_%05d.bmp' % img_idx), img_o)
+        io.imsave(os.path.join(rec_dir, 'Img_%05d.bmp' % img_idx), img_i)
+        io.imsave(os.path.join(mask_dir, 'Img_%05d.bmp' % img_idx), res_img)

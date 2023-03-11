@@ -12,9 +12,13 @@ from torch import nn, optim
 from torch.autograd import Variable
 import torch.utils.data
 from VAE import VAE
+from tensorboardX import SummaryWriter
 
 from config.ModelConfig import VAEConfig
 from config.BaseConfig import TRAIN_SET, IMAGE_SIZE, LATENT_DIM, BATCH, EPOCH, LR, FEATURE_ROW, FEATURE_COL
+
+# TensorBoardX
+TensorBoardDir = os.path.join(os.path.abspath('.'), 'tensorboardx')
 
 #
 BETA = 0.80
@@ -30,6 +34,8 @@ def elbo_loss(recon_x, x, mu_z, logvar_z, img_size):
 
 
 def main():
+    sw = SummaryWriter()
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(' Processor is %s' % device)
 
@@ -37,6 +43,10 @@ def main():
         print("---------------start data-set %d---------------" % data_idx)
         data_path = os.path.join(os.path.abspath('.'), 'data', 'Video_%03d' % data_idx, 'BMC2012_%03d.npy' % data_idx)
         model_path = os.path.join(os.path.abspath('.'), 'models', 'BMC2012_%03d.pth' % data_idx)
+
+        log_dir = os.path.join(TensorBoardDir, 'BMC2012_%03d' % data_idx)
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
 
         imgs = np.load(data_path)
         imgs_tensor = torch.FloatTensor(imgs / 256)
@@ -63,8 +73,12 @@ def main():
                 loss_vae.backward()
                 loss_vae_value += loss_vae.item()
                 vae_optimizer.step()
-            print('====> Epoch: %03d elbo_Loss : %0.8f' % ((epoch_idx + 1), loss_vae_value / len(imgs_dataset)))
+            loss = loss_vae_value / len(imgs_dataset)
+            print('====> Epoch: %03d elbo_Loss : %0.8f' % ((epoch_idx + 1), loss))
+            sw.add_scalar('Train/Loss', loss, epoch_idx)
         torch.save(vae.state_dict(), model_path)
+
+    sw.close()
 
 
 if __name__ == '__main__':
