@@ -17,8 +17,8 @@ from tensorboardX import SummaryWriter
 from config.ModelConfig import VAEConfig
 from config.BaseConfig import TRAIN_SET, IMAGE_SIZE, LATENT_DIM, BATCH, EPOCH, LR, FEATURE_ROW, FEATURE_COL
 
-# TensorBoardX
-TensorBoardDir = os.path.join(os.path.abspath('.'), 'tensorboardx')
+# logs
+LogDir = os.path.join(os.path.abspath('.'), 'logs')
 
 #
 BETA = 0.80
@@ -44,9 +44,9 @@ def main():
         data_path = os.path.join(os.path.abspath('.'), 'data', 'Video_%03d' % data_idx, 'BMC2012_%03d.npy' % data_idx)
         model_path = os.path.join(os.path.abspath('.'), 'models', 'BMC2012_%03d.pth' % data_idx)
 
-        log_dir = os.path.join(TensorBoardDir, 'BMC2012_%03d' % data_idx)
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
+        loss_dir = os.path.join(LogDir, 'loss', 'BMC2012_%03d' % data_idx)
+        if not os.path.exists(loss_dir):
+            os.makedirs(loss_dir)
 
         imgs = np.load(data_path)
         imgs_tensor = torch.FloatTensor(imgs / 256)
@@ -75,7 +75,7 @@ def main():
                 vae_optimizer.step()
             loss = loss_vae_value / len(imgs_dataset)
             print('====> Epoch: %03d elbo_Loss : %0.8f' % ((epoch_idx + 1), loss))
-            sw.add_scalar('Train/Loss', loss, epoch_idx)
+            sw.add_scalar(loss_dir, loss, epoch_idx)
         torch.save(vae.state_dict(), model_path)
 
     sw.close()
