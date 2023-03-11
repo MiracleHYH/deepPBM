@@ -75,7 +75,7 @@ def main():
                 vae_optimizer.step()
             loss = loss_vae_value / len(imgs_dataset)
             print('====> Epoch: %03d elbo_Loss : %0.8f' % ((epoch_idx + 1), loss))
-            loss_writer.add_scalar(loss_dir, loss, epoch_idx)
+            loss_writer.add_scalar('Train/Loss', loss, epoch_idx)
         torch.save(vae.state_dict(), model_path)
         loss_writer.close()
 
