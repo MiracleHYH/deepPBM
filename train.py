@@ -34,8 +34,6 @@ def elbo_loss(recon_x, x, mu_z, logvar_z, img_size):
 
 
 def main():
-    sw = SummaryWriter()
-
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(' Processor is %s' % device)
 
@@ -47,6 +45,8 @@ def main():
         loss_dir = os.path.join(LogDir, 'loss', 'BMC2012_%03d' % data_idx)
         if not os.path.exists(loss_dir):
             os.makedirs(loss_dir)
+
+        loss_writer = SummaryWriter(loss_dir)
 
         imgs = np.load(data_path)
         imgs_tensor = torch.FloatTensor(imgs / 256)
@@ -75,10 +75,9 @@ def main():
                 vae_optimizer.step()
             loss = loss_vae_value / len(imgs_dataset)
             print('====> Epoch: %03d elbo_Loss : %0.8f' % ((epoch_idx + 1), loss))
-            sw.add_scalar(loss_dir, loss, epoch_idx)
+            loss_writer.add_scalar(loss_dir, loss, epoch_idx)
         torch.save(vae.state_dict(), model_path)
-
-    sw.close()
+        loss_writer.close()
 
 
 if __name__ == '__main__':
